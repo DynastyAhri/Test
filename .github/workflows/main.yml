@@ -1,34 +1,22 @@
-name: Check Runner PHP Status (Ubuntu 26.04)
+name: Tests
 
 on:
   workflow_dispatch:
 
 jobs:
-  check-runner:
-    runs-on: ubuntu-26.04
+  tests:
+    runs-on: ubuntu-latest   # resolves to ubuntu-24.04
+    env:
+      NODE_ENV: test
+    services:
+      mongo:
+        image: mongo:8
+        ports:
+          - 27017:27017
     steps:
-      - name: Output PHP & Patch Log
-        run: |
-          echo "=== 1. INSTALLED PHP ON RUNNER ==="
-          echo "Binary Path   : $(which php)"
-          echo "PHP Version   : $(php -r 'echo PHP_VERSION;')"
-          echo "Apt Package   : $(dpkg-query -W -f='${Version}' php8.5-cli 2>/dev/null || echo 'Not managed by apt')"
-
-          echo ""
-          echo "=== 2. LATEST UBUNTU CHANGELOG ENTRY ==="
-          if [ -f /usr/share/doc/php8.5-common/changelog.Debian.gz ]; then
-            zcat /usr/share/doc/php8.5-common/changelog.Debian.gz | head -n 15
-          else
-            echo "Changelog not found."
-          fi
-
-          echo ""
-          echo "=== 3. PATCH VERIFICATION RESULT ==="
-          if php -r 'exit(version_compare(PHP_VERSION, "8.5.12", ">=") ? 0 : 1);'; then
-            echo "STATUS: FIXED (Runner has PHP >= 8.5.12)"
-          elif zgrep -qE "CVE-2026-109618|CVE-2026-109619" /usr/share/doc/php8.5-common/changelog.Debian.gz 2>/dev/null; then
-            echo "STATUS: FIXED (Runner has backported CVE fix in PHP 8.5)"
-          else
-            echo "STATUS: NOT FIXED (Runner PHP 8.5 is still unpatched)"
-            exit 1
-          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+      - run: npm ci
+      - run: npx vitest run
