@@ -20,4 +20,12 @@ jobs:
           node-version: 24.15.0
       - run: npm init -y && npm i --package-lock-only vitest
       - run: npm ci
+      - run: |
+          cat << 'EOF' > sample.test.js
+          import { expect, test } from 'vitest';
+
+          test('basic check', () => {
+            expect(1 + 1).toBe(2);
+          });
+          EOF
       - run: npx vitest run
