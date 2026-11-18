@@ -1,0 +1,28 @@
+name: Verify PHP CVE Patch on Ubuntu 24.04
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-php-security:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check PHP base version
+        run: php -v
+
+      - name: Check Ubuntu package revision
+        run: |
+          PACKAGE=$(dpkg -S $(which php) | cut -d: -f1)
+          echo "Installed package: $PACKAGE"
+          apt-cache policy "$PACKAGE"
+
+      - name: Verify CVE-2026-109618 / CVE-2026-109619 in changelog
+        run: |
+          CHANGELOG=$(zcat /usr/share/doc/php8.3-common/changelog.Debian.gz)
+          echo "$CHANGELOG" | head -n 30
+          if echo "$CHANGELOG" | grep -E "CVE-2026-109618|CVE-2026-109619"; then
+            echo "✅ SUCCESS: The PHP security patch is applied on this runner."
+          else
+            echo "❌ WARNING: The CVEs were not found in the changelog. The runner may still be unpatched."
+            exit 1
+          fi
