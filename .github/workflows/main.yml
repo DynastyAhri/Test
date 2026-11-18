@@ -1,28 +1,34 @@
-name: Verify PHP CVE Patch on Ubuntu 24.04
+name: Verify PHP2Shell Fix (Ubuntu 24.04)
 
 on:
   workflow_dispatch:
 
 jobs:
-  check-php-security:
+  verify-ubuntu-24:
     runs-on: ubuntu-24.04
     steps:
-      - name: Check PHP base version
-        run: php -v
-
-      - name: Check Ubuntu package revision
+      - name: Check PHP Patch Status on Ubuntu 24.04
         run: |
-          PACKAGE=$(dpkg -S $(which php) | cut -d: -f1)
-          echo "Installed package: $PACKAGE"
-          apt-cache policy "$PACKAGE"
+          PHP_VER=$(php -r 'echo PHP_VERSION;')
+          PKG_VER=$(dpkg-query -W -f='${Version}' php8.3-cli 2>/dev/null || echo "N/A")
 
-      - name: Verify CVE-2026-109618 / CVE-2026-109619 in changelog
-        run: |
-          CHANGELOG=$(zcat /usr/share/doc/php8.3-common/changelog.Debian.gz)
-          echo "$CHANGELOG" | head -n 30
-          if echo "$CHANGELOG" | grep -E "CVE-2026-109618|CVE-2026-109619"; then
-            echo "✅ SUCCESS: The PHP security patch is applied on this runner."
+          # 1. Check if PHP version is >= 8.3.36
+          IS_UPSTREAM_PATCHED=$(php -r 'echo version_compare(PHP_VERSION, "8.3.36", ">=") ? "yes" : "no";')
+
+          # 2. Check if Ubuntu backported the CVEs into the 8.3.6 package
+          IS_BACKPORTED="no"
+          if zgrep -qE "CVE-2026-109618|CVE-2026-109619" /usr/share/doc/php8.3-common/changelog.Debian.gz 2>/dev/null; then
+            IS_BACKPORTED="yes"
+          fi
+
+          echo "Runner PHP Version : $PHP_VER"
+          echo "Ubuntu Package     : $PKG_VER"
+          echo "----------------------------------------"
+
+          if [ "$IS_UPSTREAM_PATCHED" = "yes" ] || [ "$IS_BACKPORTED" = "yes" ]; then
+            echo "RESULT: FIXED (Patched on Ubuntu 24.04)"
+            exit 0
           else
-            echo "❌ WARNING: The CVEs were not found in the changelog. The runner may still be unpatched."
+            echo "RESULT: NOT FIXED (Still vulnerable on Ubuntu 24.04)"
             exit 1
           fi
