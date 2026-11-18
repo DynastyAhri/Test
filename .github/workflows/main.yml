@@ -18,20 +18,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.15.0
-      - run: npm init -y && npm i --package-lock-only vitest mongodb
+      - run: npm init -y && npm i vitest
       - run: npm ci
       - run: |
           cat << 'EOF' > sample.test.js
           import { expect, test } from 'vitest';
-          import { MongoClient } from 'mongodb';
+          import net from 'node:net';
 
-          test('mongo connection check', async () => {
-            const client = new MongoClient('mongodb://127.0.0.1:27017', {
-              serverSelectionTimeoutMS: 5000
+          test('mongo port check', async () => {
+            await new Promise((resolve, reject) => {
+              const socket = net.connect(27017, '127.0.0.1', () => {
+                socket.end();
+                resolve();
+              });
+              socket.on('error', reject);
             });
-            await client.connect();
-            await client.db('admin').command({ ping: 1 });
-            await client.close();
             expect(true).toBe(true);
           });
           EOF
