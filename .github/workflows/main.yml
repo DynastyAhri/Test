@@ -1,34 +1,32 @@
-name: Check Runner PHP Status (Ubuntu 24.04)
+name: Check Runner PHP Status (Ubuntu 22.04)
 
 on:
   workflow_dispatch:
 
 jobs:
   check-runner:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Output PHP & Patch Log
         run: |
           echo "=== 1. INSTALLED PHP ON RUNNER ==="
           echo "Binary Path   : $(which php)"
           echo "PHP Version   : $(php -r 'echo PHP_VERSION;')"
-          echo "Apt Package   : $(dpkg-query -W -f='${Version}' php8.3-cli 2>/dev/null || echo 'Not managed by apt')"
+          echo "Apt Package   : $(dpkg-query -W -f='${Version}' php8.1-cli 2>/dev/null || echo 'Not managed by apt')"
 
           echo ""
           echo "=== 2. LATEST UBUNTU CHANGELOG ENTRY ==="
-          if [ -f /usr/share/doc/php8.3-common/changelog.Debian.gz ]; then
-            zcat /usr/share/doc/php8.3-common/changelog.Debian.gz | head -n 15
+          if [ -f /usr/share/doc/php8.1-common/changelog.Debian.gz ]; then
+            zcat /usr/share/doc/php8.1-common/changelog.Debian.gz | head -n 15
           else
             echo "Changelog not found."
           fi
 
           echo ""
           echo "=== 3. PATCH VERIFICATION RESULT ==="
-          if php -r 'exit(version_compare(PHP_VERSION, "8.3.36", ">=") ? 0 : 1);'; then
-            echo "STATUS: FIXED (Runner has PHP >= 8.3.36)"
-          elif zgrep -qE "CVE-2026-109618|CVE-2026-109619" /usr/share/doc/php8.3-common/changelog.Debian.gz 2>/dev/null; then
-            echo "STATUS: FIXED (Runner has backported CVE fix in 8.3.6)"
+          if zgrep -qE "CVE-2026-109618|CVE-2026-109619" /usr/share/doc/php8.1-common/changelog.Debian.gz 2>/dev/null; then
+            echo "STATUS: FIXED (Runner has backported CVE fix in PHP 8.1)"
           else
-            echo "STATUS: NOT FIXED (Runner PHP is still unpatched)"
+            echo "STATUS: NOT FIXED (Runner PHP 8.1 is still unpatched)"
             exit 1
           fi
