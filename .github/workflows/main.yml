@@ -7,42 +7,22 @@ jobs:
   check-php-security:
     runs-on: ubuntu-24.04
     steps:
-      - name: Check PHP Security Status
-        id: check
+      - name: Check PHP base version
+        run: php -v
+
+      - name: Check Ubuntu package revision
         run: |
-          # Get base PHP version (e.g., 8.3.6)
-          BASE_VER=$(php -r 'echo PHP_VERSION;')
+          PACKAGE=$(dpkg -S $(which php) | cut -d: -f1)
+          echo "Installed package: $PACKAGE"
+          apt-cache policy "$PACKAGE"
 
-          # Get full Ubuntu package version (e.g., 8.3.6-0ubuntu0.24.04.2)
-          PKG_VER=$(dpkg-query -W -f='${Version}\n' php8.3-common 2>/dev/null || echo "Not installed via apt")
-
-          # Search changelog for the CVEs
-          if zgrep -qE "CVE-2026-109618|CVE-2026-109619" /usr/share/doc/php8.3-common/changelog.Debian.gz 2>/dev/null; then
-            STATUS="✅ PATCHED"
-            PATCHED="true"
+      - name: Verify CVE-2026-109618 / CVE-2026-109619 in changelog
+        run: |
+          CHANGELOG=$(zcat /usr/share/doc/php8.3-common/changelog.Debian.gz)
+          echo "$CHANGELOG" | head -n 30
+          if echo "$CHANGELOG" | grep -E "CVE-2026-109618|CVE-2026-109619"; then
+            echo "✅ SUCCESS: The PHP security patch is applied on this runner."
           else
-            STATUS="❌ UNPATCHED (CVEs not found)"
-            PATCHED="false"
-          fi
-
-          # Print clean output to console
-          echo "=========================================="
-          echo "PHP Base Version : $BASE_VER"
-          echo "Ubuntu Package   : $PKG_VER"
-          echo "Security Status  : $STATUS"
-          echo "=========================================="
-
-          # Write clean table to GitHub Actions Summary page
-          {
-            echo "### PHP Security Check (Ubuntu 24.04)"
-            echo "| Metric | Value |"
-            echo "| :--- | :--- |"
-            echo "| **PHP Base Version** | \`$BASE_VER\` |"
-            echo "| **Ubuntu Package Revision** | \`$PKG_VER\` |"
-            echo "| **Patch Status** | **$STATUS** |"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          # Fail the job if unpatched
-          if [ "$PATCHED" = "false" ]; then
+            echo "❌ WARNING: The CVEs were not found in the changelog. The runner may still be unpatched."
             exit 1
           fi
