@@ -1,39 +1,39 @@
-name: Tests
+name: Build with LLVM 22 on Windows
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  tests:
-    runs-on: ubuntu-24.04
-    env:
-      NODE_ENV: test
-    services:
-      mongo:
-        image: mongo:8
-        ports:
-          - 27017:27017
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24.15.0
-      - run: npm init -y && npm i vitest
-      - run: npm ci
-      - run: |
-          cat << 'EOF' > sample.test.js
-          import { expect, test } from 'vitest';
-          import net from 'node:net';
+  build:
+    
+    runs-on: windows-2025-vs2026
 
-          test('mongo port check', async () => {
-            await new Promise((resolve, reject) => {
-              const socket = net.connect(27017, '127.0.0.1', () => {
-                socket.end();
-                resolve();
-              });
-              socket.on('error', reject);
-            });
-            expect(true).toBe(true);
-          });
-          EOF
-      - run: npx vitest run
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install LLVM 22
+        shell: pwsh
+        run: |
+          $version = "22.1.8"
+          $installer = "LLVM-$version-win64.exe"
+          $url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-$version/$installer"
+
+          Write-Host "Downloading LLVM $version..."
+          Invoke-WebRequest -Uri $url -OutFile $installer
+
+          Write-Host "Installing LLVM silently..."
+          Start-Process -FilePath ".\$installer" -ArgumentList "/S" -Wait
+
+          Remove-Item -Path ".\$installer" -Force
+
+          "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Verify LLVM installation
+        shell: pwsh
+        run: |
+          clang --version
+          lld-link --version
