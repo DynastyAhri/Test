@@ -7,7 +7,6 @@ jobs:
   install-ruby:
     runs-on: windows-11-arm
     strategy:
-      fail-fast: false
       matrix:
         ruby-version:
           - '4.0'
