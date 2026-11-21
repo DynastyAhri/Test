@@ -1,14 +1,30 @@
-name: Repro TLS Handshake
+name: Ruby Windows ARM64 (Manual)
 
 on:
   workflow_dispatch:
 
 jobs:
-  repro:
-    runs-on: ubuntu-26.04
+  install-ruby:
+    runs-on: windows-11-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby-version:
+          - '3.2.11'
+          - '3.3.13'
+          - '3.4.12'
+          - '4.0.9'
+
     steps:
-      - run: |
-          for i in $(seq 1 20); do
-            openssl s_client -connect pypi.org:443 -servername pypi.org </dev/null >/dev/null 2>&1 \
-              || echo "attempt $i FAILED"
-          done
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby ${{ matrix.ruby-version }} (ARM64)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+
+      - name: Verify architecture and version
+        run: |
+          ruby -v
+          ruby -e "puts RbConfig::CONFIG['host_cpu']"
