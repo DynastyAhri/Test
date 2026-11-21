@@ -6,19 +6,15 @@ on:
 jobs:
   install-ruby:
     runs-on: windows-11-arm
-    strategy:
-      matrix:
-        ruby-version:
-          - '4.0'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Ruby ${{ matrix.ruby-version }} (ARM64)
+      - name: Set up Ruby 4.0 (ARM64)
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ${{ matrix.ruby-version }}
+          ruby-version: '4.0'
 
       - name: Verify architecture and version
         run: |
