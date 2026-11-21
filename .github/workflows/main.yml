@@ -1,4 +1,4 @@
-name: Repro TLS Handshake
+name: Repro pip install
 
 on:
   workflow_dispatch:
@@ -7,8 +7,4 @@ jobs:
   repro:
     runs-on: ubuntu-26.04
     steps:
-      - run: |
-          for i in $(seq 1 20); do
-            openssl s_client -connect pypi.org:443 -servername pypi.org </dev/null >/dev/null 2>&1 \
-              || echo "attempt $i FAILED"
-          done
+      - run: pip install requests weasyprint
